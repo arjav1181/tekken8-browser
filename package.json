@@ -6,12 +6,14 @@
   "main": "server.cjs",
   "scripts": {
     "start": "node server.cjs",
-    "test": "node test/core.test.js && node test/ws.test.cjs",
+    "test": "node test/core.test.js",
     "test:core": "node test/core.test.js",
     "test:ws": "node test/ws.test.cjs",
-    "test:game": "node test/game.test.js",
-    "test:wall": "node test/wall.test.js",
-    "test:all": "node test/core.test.js && node test/ws.test.cjs && node test/game.test.js && node test/wall.test.js"
+    "test:browser": "node test/browser.test.mjs",
+    "test:all": "node test/core.test.js && node test/ws.test.cjs && node test/browser.test.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.49.0"
   },
   "keywords": ["fighting-game", "tekken", "canvas", "browser", "rollback-netcode"],
   "license": "MIT"

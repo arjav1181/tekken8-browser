@@ -7,7 +7,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  test:
+  core:
+    name: Core systems (node ${{ matrix.node }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -16,7 +17,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
@@ -30,19 +30,12 @@ jobs:
       - name: Core systems
         run: node test/core.test.js
 
-      - name: Gameplay suite
-        if: always()
-        run: node test/game.test.js
-
-      - name: Wall game suite
-        if: always()
-        run: node test/wall.test.js
-
-  relay:
+  gameplay:
+    name: Gameplay suite (browser)
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -53,24 +46,53 @@ jobs:
       - name: Wait for server
         run: |
           for i in $(seq 1 30); do
-            if curl -sf http://localhost:3000/ > /dev/null; then echo "up"; exit 0; fi
+            if curl -sf http://localhost:3000/ > /dev/null; then echo up; exit 0; fi
             sleep 1
           done
           echo "server did not start"; exit 1
 
       - name: Static routes
         run: |
-          for p in / /js/main.js /css/style.css /js/data/roster.js; do
+          for p in / /js/main.js /css/style.css /js/data/roster.js /js/game/Fighter.js; do
             code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:3000$p")
             echo "$p -> $code"
             test "$code" = "200" || exit 1
           done
 
-      - name: Room API
-        run: |
-          curl -sf -X POST http://localhost:3000/api/room | tee /dev/stderr | grep -q '"code"'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
 
-      - name: WebSocket relay
+      - name: Gameplay suite
+        run: node test/browser.test.mjs
+
+      - name: Stop server
+        if: always()
+        run: pkill -f server.cjs || true
+
+  relay:
+    name: WebSocket relay
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Start server
+        run: node server.cjs &
+
+      - name: Wait for server
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3000/ > /dev/null; then echo up; exit 0; fi
+            sleep 1
+          done
+          echo "server did not start"; exit 1
+
+      - name: Room API
+        run: curl -sf -X POST http://localhost:3000/api/room | tee /dev/stderr | grep -q '"code"'
+
+      - name: Relay
         run: node test/ws.test.cjs
 
       - name: Stop server

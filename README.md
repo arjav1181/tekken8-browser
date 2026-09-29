@@ -59,16 +59,18 @@ dependencies. One player creates a room and shares the code; the other joins.
 ## Tests
 
 ```bash
-npm test              # core systems + relay
-npm run test:core     # input engine, frame data, roster integrity
-npm run test:ws       # websocket relay
-npm run test:game     # gameplay suite
-npm run test:wall     # wall game suite
+npm test               # core systems
+npm run test:core      # input engine, frame data, roster integrity
+npm run test:ws        # websocket relay (needs the server running)
+npm run test:browser   # gameplay + wall game suite in headless chromium
+npm run test:all
 ```
 
-`test/core.test.js` and `test/ws.test.cjs` are known-green. `test/game.test.js`
-and `test/wall.test.js` depend on multi-module ESM graphs that some sandboxed
-Node builds mis-compile; they pass on a standard Node install.
+`test/suite.mjs` holds the 81 gameplay and wall-game assertions. It is
+executed inside a real browser by `test/browser.test.mjs`, because the game
+is a browser app and the module graph needs to be validated where it
+actually runs. `npm run test:browser` needs `npm i playwright && npx
+playwright install chromium`.
 
 ## Layout
 
