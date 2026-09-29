@@ -7,9 +7,12 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..');
 const BASE = process.env.BASE_URL || 'http://localhost:3000';
 
-const suiteSource = fs.readFileSync(path.join(HERE, 'suite.mjs'), 'utf8')
-    .replace(/^\s*export\s+(function|const|let|var|class)\s/gm, '$1 ')
-    .replace(/^\s*export\s*\{[^}]*\};?\s*$/gm, '');
+const suiteSource = (
+    fs.readFileSync(path.join(HERE, 'suite.mjs'), 'utf8')
+        .replace(/^\s*export\s+(function|const|let|var|class)\s/gm, '$1 ')
+        .replace(/^\s*export\s*\{[^}]*\};?\s*$/gm, '')
+        + '\n;module.exports = { buildSuite, runSuite };\n'
+);
 
 
 async function main() {
