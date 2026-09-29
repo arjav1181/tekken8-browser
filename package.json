@@ -1,0 +1,18 @@
+{
+  "name": "tekken8-browser",
+  "version": "1.0.0",
+  "description": "Browser fighting game with deep Tekken-style mechanics",
+  "type": "module",
+  "main": "server.cjs",
+  "scripts": {
+    "start": "node server.cjs",
+    "test": "node test/core.test.js && node test/ws.test.cjs",
+    "test:core": "node test/core.test.js",
+    "test:ws": "node test/ws.test.cjs",
+    "test:game": "node test/game.test.js",
+    "test:wall": "node test/wall.test.js",
+    "test:all": "node test/core.test.js && node test/ws.test.cjs && node test/game.test.js && node test/wall.test.js"
+  },
+  "keywords": ["fighting-game", "tekken", "canvas", "browser", "rollback-netcode"],
+  "license": "MIT"
+}

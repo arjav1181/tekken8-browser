@@ -1,0 +1,23 @@
+node_modules/
+.DS_Store
+*.log
+.env
+.env.*
+!.env.example
+
+# test artifacts
+test-screenshot-*.png
+test/.bundle.mjs
+test/*.tmp
+coverage/
+.nyc_output/
+
+# editor
+.vscode/
+.idea/
+*.swp
+
+# build output
+dist/
+build/
+.cache/
