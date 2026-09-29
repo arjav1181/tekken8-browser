@@ -3,7 +3,6 @@ import { MoveSet } from './MoveSet.js';
 import {
     WALL,
     isAgainstWall,
-    isInWallCarryZone,
     canWallCarry,
     applyWallCarry,
     applyWallSplat,
@@ -12,10 +11,9 @@ import {
     applySpiral,
     updateWallGame,
     clampToStage,
-    canWallThrow,
 } from './WallGame.js';
 import {
-    Move, HitLevel, MoveCategory, Stance,
+    HitLevel, MoveCategory, Stance,
     getPenalizedDamage, getChipDamage,
 } from './Move.js';
 

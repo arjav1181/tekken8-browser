@@ -1,4 +1,4 @@
-import { HitLevel, MoveCategory, Stance, Move } from './Move.js';
+import { MoveCategory, Move } from './Move.js';
 import { isAgainstWall } from './WallGame.js';
 
 const BUTTON_SETS = {

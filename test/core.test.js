@@ -2,6 +2,21 @@ import { createMotionParser, toNumpad, toRelative, encodeInput, decodeInput, Inp
 import { Move, HitLevel, MoveCategory, getPenalizedDamage } from '../js/game/Move.js';
 import { CHARACTERS, ROSTER } from '../js/data/roster.js';
 import { STAGES, getStage } from '../js/data/stages.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+const JS_ROOT = path.resolve(HERE, '..', 'js');
+
+function listJs(dir, acc = []) {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, e.name);
+        if (e.isDirectory()) listJs(full, acc);
+        else if (e.name.endsWith('.js')) acc.push(full);
+    }
+    return acc;
+}
 
 let pass = 0, fail = 0;
 const out = [];
@@ -318,6 +333,39 @@ test3('stage catalog is valid', () => {
     assert(getStage(0) === STAGES[0], 'getStage(0)');
     assert(getStage(STAGES.length) === STAGES[0], 'getStage wraps');
     assert(getStage(-1) === STAGES[STAGES.length - 1], 'getStage wraps negative');
+});
+
+test3('no module imports a name it does not use', () => {
+    for (const file of listJs(JS_ROOT)) {
+        const src = fs.readFileSync(file, 'utf8');
+        const rel = path.relative(JS_ROOT, file);
+        const importRe = /^\s*import\s+([\s\S]*?)\s+from\s*['"]([^'"]+)['"];?\s*$/gm;
+        let m;
+        while ((m = importRe.exec(src)) !== null) {
+            const clause = m[1];
+            const braced = clause.match(/\{([\s\S]*)\}/);
+            if (!braced) continue;
+            const names = braced[1].split(',').map(s => s.trim().split(/\s+as\s+/)[0].trim()).filter(Boolean);
+            const body = src.slice(0, m.index) + src.slice(m.index + m[0].length);
+            for (const n of names) {
+                const used = new RegExp(`\\b${n.replace(/\$/g, '\\$')}\\b`).test(body);
+                assert(used, `${rel} imports '${n}' from ${m[2]} but never uses it`);
+            }
+        }
+    }
+});
+
+test3('every relative import resolves to a real file', () => {
+    for (const file of listJs(JS_ROOT)) {
+        const src = fs.readFileSync(file, 'utf8');
+        const rel = path.relative(JS_ROOT, file);
+        const importRe = /^\s*import\s+[\s\S]*?\s+from\s*['"](\.[^'"]+)['"];?\s*$/gm;
+        let m;
+        while ((m = importRe.exec(src)) !== null) {
+            const target = path.resolve(path.dirname(file), m[1]);
+            assert(fs.existsSync(target), `${rel} imports ${m[1]} which does not exist`);
+        }
+    }
 });
 
 console.log(out3.join('\n'));

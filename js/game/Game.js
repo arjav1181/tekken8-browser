@@ -1,10 +1,10 @@
-import { Fighter, State, T } from './Fighter.js';
+import { Fighter, State } from './Fighter.js';
 import { AIController, Difficulty } from './AI.js';
-import { getCharacter, CHARACTERS } from '../data/roster.js';
+import { getCharacter } from '../data/roster.js';
 import { getStage } from '../data/stages.js';
 import { WALL, WALL_LIMIT } from './WallGame.js';
 import { HitLevel } from './Move.js';
-import { toNumpad, toRelative, decodeInput, encodeInput } from './MotionInput.js';
+import { encodeInput } from './MotionInput.js';
 
 export const GameMode = {
     ARCADE: 'arcade',

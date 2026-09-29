@@ -1,4 +1,4 @@
-import { State, T } from './Fighter.js';
+import { State } from './Fighter.js';
 import { HitLevel } from './Move.js';
 
 export const Difficulty = {

@@ -1,9 +1,5 @@
 import { Phase, RoundRules } from '../game/Game.js';
-import { State } from '../game/Fighter.js';
-import { HitLevel } from '../game/Move.js';
-import { drawStage } from '../data/stages.js';
-import { drawFighter, drawHitboxDebug, drawHurtboxDebug } from '../game/FighterRender.js';
-import { audio } from '../audio/AudioEngine.js';
+import { drawHitboxDebug, drawHurtboxDebug } from '../game/FighterRender.js';
 
 const COLORS = {
     p1: { name: '#4af', sub: '#2a88aa' },

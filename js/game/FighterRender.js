@@ -1,5 +1,4 @@
-import { getPose, RIG } from './Rig.js';
-import { State } from './Fighter.js';
+import { getPose } from './Rig.js';
 
 const BONES = [
     ['chest', 'neck', 8],

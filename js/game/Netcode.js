@@ -1,4 +1,3 @@
-import { encodeInput, decodeInput } from './MotionInput.js';
 
 const DEFAULT_ROLLBACK_FRAMES = 8;
 const INPUT_BYTE = 12;

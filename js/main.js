@@ -1,13 +1,13 @@
 import { GameLoop } from './engine/GameLoop.js';
 import { Input } from './engine/Input.js';
 import { Renderer } from './engine/Renderer.js';
-import { Game, GameMode, Phase } from './game/Game.js';
+import { Game, GameMode } from './game/Game.js';
 import { HUD } from './ui/HUD.js';
 import { TouchControls } from './ui/TouchControls.js';
 import { drawStage, getStage } from './data/stages.js';
 import { drawFighter } from './game/FighterRender.js';
 import { audio } from './audio/AudioEngine.js';
-import { RollbackSession, encodeInput, decodeInput } from './game/Netcode.js';
+import { RollbackSession } from './game/Netcode.js';
 import { CHARACTERS, getCharacter } from './data/roster.js';
 import { Difficulty } from './game/AI.js';
 
