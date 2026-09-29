@@ -58,19 +58,25 @@ dependencies. One player creates a room and shares the code; the other joins.
 
 ## Tests
 
+137 assertions, all green on Node 20 and 22, on bun, and in headless
+Chromium.
+
 ```bash
-npm test               # core systems
+npm test               # core systems            39
 npm run test:core      # input engine, frame data, roster integrity
-npm run test:ws        # websocket relay (needs the server running)
-npm run test:browser   # gameplay + wall game suite in headless chromium
-npm run test:all
+npm run test:game      # gameplay + wall game    82
+npm run test:ws        # websocket relay         16  (needs the server)
+npm run test:all       # core + game + relay
+npm run test:browser   # gameplay suite in headless chromium
 ```
 
-`test/suite.mjs` holds the 81 gameplay and wall-game assertions. It is
-executed inside a real browser by `test/browser.test.mjs`, because the game
-is a browser app and the module graph needs to be validated where it
-actually runs. `npm run test:browser` needs `npm i playwright && npx
-playwright install chromium`.
+`test/suite.mjs` holds the gameplay and wall-game assertions. It runs
+directly under Node via `test/game.test.mjs` and in a real browser via
+`test/browser.test.mjs`, so the module graph is validated where players
+actually load it. The browser runner needs
+`npm i playwright && npx playwright install chromium`.
+
+CI runs all three suites on every push.
 
 ## Layout
 
