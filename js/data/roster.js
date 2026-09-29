@@ -1,7 +1,10 @@
 import { HitLevel, MoveCategory, Stance } from '../game/Move.js';
 
 const NOTATION_MOTION = (notation) => {
-    const base = notation.split(' ')[0];
+    const tokens = notation.split(' ').filter(tok => /[fbudq~]/.test(tok));
+    if (tokens.length === 0) return null;
+    const base = tokens[0];
+
     if (base.startsWith('~')) return [4, 1, 2, 3, 6];
     const double = base.match(/^([fb]),\1/);
     if (double) {
@@ -36,49 +39,79 @@ const withMotion = (notation, extra) => {
     return m && !extra.motion ? { motion: m, ...extra } : extra;
 };
 
+
+const BUTTONS_BY_TOKEN = {
+    '1': 'LP', '2': 'HP', '3': 'LK', '4': 'HK',
+    '1+2': 'LPHP', '2+1': 'LPHP', '3+4': 'HPHK', '4+3': 'HPHK',
+    '1+3': 'LPK', '2+4': 'HPHK', '1+4': 'LPHK', '1+2+3': 'LPHK', '1+2+4': 'LPHK',
+    'LP': 'LP', 'HP': 'HP', 'LK': 'LK', 'HK': 'HK',
+    'LP+HP': 'LPHP', 'LP+LK': 'LPK', 'HP+HK': 'HPHK', 'LP+HK': 'LPHK',
+};
+
+const buttonsFor = (notation, fallback) => {
+    const tokens = notation.split(' ');
+    for (let i = tokens.length - 1; i >= 0; i--) {
+        let t = tokens[i];
+        t = t.replace(/^[A-Z]{2,4}(?=\d)/, '');
+        t = t.replace(/^[~]+/, '');
+        t = t.replace(/^[fbsdqu,]+/i, '');
+        t = t.replace(/^\++/, '');
+        if (BUTTONS_BY_TOKEN[t]) return BUTTONS_BY_TOKEN[t];
+    }
+    return fallback;
+};
+
 const N = (name, notation, extra) => ({
     name, notation, category: MoveCategory.NORMAL,
-    buttons: 'LP', hitLevel: HitLevel.HIGH, ...withMotion(notation, extra),
+    buttons: buttonsFor(notation, 'LP'), hitLevel: HitLevel.HIGH, requiresStand: true, ...withMotion(notation, extra),
 });
 const N4 = (name, notation, extra) => ({
     name, notation, category: MoveCategory.NORMAL,
-    buttons: 'HP', hitLevel: HitLevel.HIGH, ...withMotion(notation, extra),
+    buttons: buttonsFor(notation, 'HP'), hitLevel: HitLevel.MID, requiresStand: true, ...withMotion(notation, extra),
+});
+const NL = (name, notation, extra) => ({
+    name, notation, category: MoveCategory.NORMAL,
+    buttons: buttonsFor(notation, 'LP'), hitLevel: HitLevel.LOW, ...withMotion(notation, extra),
+});
+const N4L = (name, notation, extra) => ({
+    name, notation, category: MoveCategory.NORMAL,
+    buttons: buttonsFor(notation, 'HP'), hitLevel: HitLevel.LOW, ...withMotion(notation, extra),
 });
 const N2 = (name, notation, extra) => ({
     name, notation, category: MoveCategory.NORMAL,
-    buttons: 'LK', hitLevel: HitLevel.LOW, ...withMotion(notation, extra),
+    buttons: buttonsFor(notation, 'LK'), hitLevel: HitLevel.LOW, ...withMotion(notation, extra),
 });
 const N3 = (name, notation, extra) => ({
     name, notation, category: MoveCategory.NORMAL,
-    buttons: 'HK', hitLevel: HitLevel.LOW, ...withMotion(notation, extra),
+    buttons: buttonsFor(notation, 'HK'), hitLevel: HitLevel.LOW, ...withMotion(notation, extra),
 });
 const CMN = (name, notation, extra) => ({
     name, notation, category: MoveCategory.COMMAND_NORMAL,
-    buttons: 'LP+HP', hitLevel: HitLevel.MID, ...withMotion(notation, extra),
+    buttons: buttonsFor(notation, 'LP+HP'), hitLevel: HitLevel.MID, ...withMotion(notation, extra),
 });
 const SEN = (name, notation, extra) => ({
     name, notation, category: MoveCategory.SPECIAL,
-    buttons: 'LP+HP', hitLevel: HitLevel.MID, ...withMotion(notation, extra),
+    buttons: buttonsFor(notation, 'LP+HP'), hitLevel: HitLevel.MID, ...withMotion(notation, extra),
 });
 const CS = (name, notation, extra) => ({
     name, notation, category: MoveCategory.COMMAND_SPECIAL,
-    buttons: 'LP+HP', hitLevel: HitLevel.MID, ...withMotion(notation, extra),
+    buttons: buttonsFor(notation, 'LP+HP'), hitLevel: HitLevel.MID, ...withMotion(notation, extra),
 });
 const HCF = (name, notation, extra) => ({
     name, notation, category: MoveCategory.COMMAND_SPECIAL,
-    buttons: 'LP+HP', hitLevel: HitLevel.MID, ...withMotion(notation, extra),
+    buttons: buttonsFor(notation, 'LP+HP'), hitLevel: HitLevel.MID, ...withMotion(notation, extra),
 });
 const RAGE = (name, notation, extra) => ({
     name, notation, category: MoveCategory.RAGE_ART,
-    buttons: 'LP+HP', hitLevel: HitLevel.MID, requiresRage: true, ...withMotion(notation, extra),
+    buttons: buttonsFor(notation, 'LP+HP'), hitLevel: HitLevel.MID, requiresRage: true, ...withMotion(notation, extra),
 });
 const HS = (name, notation, extra) => ({
     name, notation, category: MoveCategory.HEAT_SMASH,
-    buttons: 'HP+HK', hitLevel: HitLevel.MID, requiresHeat: true, ...withMotion(notation, extra),
+    buttons: buttonsFor(notation, 'HP+HK'), hitLevel: HitLevel.MID, requiresHeat: true, ...withMotion(notation, extra),
 });
 const HE = (name, notation, extra) => ({
     name, notation, category: MoveCategory.HEAT_ENGAGER,
-    buttons: 'HP+HK', hitLevel: HitLevel.MID, heatEngager: true, ...withMotion(notation, extra),
+    buttons: buttonsFor(notation, 'HP+HK'), hitLevel: HitLevel.MID, heatEngager: true, ...withMotion(notation, extra),
 });
 const TH = (name, notation, extra) => ({
     name, notation, category: MoveCategory.THROW,
@@ -91,23 +124,23 @@ const CTH = (name, notation, extra) => ({
 
 const WALL_THROW = (name, notation, extra) => ({
     name, notation, category: MoveCategory.THROW,
-    buttons: 'LP+LK', hitLevel: HitLevel.THROW, throwType: 'command',
+    buttons: buttonsFor(notation, 'LP+LK'), hitLevel: HitLevel.THROW, throwType: 'command',
     wallThrow: true, knockdown: true, techable: true, range: 0,
     motion: NOTATION_MOTION(notation), priority: 20, ...extra,
 });
 const WALL_SPLAT = (name, notation, extra) => ({
     name, notation, category: MoveCategory.COMMAND_SPECIAL,
-    buttons: 'LP+HP', hitLevel: HitLevel.MID, wallSplat: true,
+    buttons: buttonsFor(notation, 'LP+HP'), hitLevel: HitLevel.MID, wallSplat: true,
     motion: NOTATION_MOTION(notation), priority: 20, ...extra,
 });
 const BALCONY = (name, notation, extra) => ({
     name, notation, category: MoveCategory.COMMAND_SPECIAL,
-    buttons: 'LP+HP', hitLevel: HitLevel.MID, balconyBreak: true, knockdown: true,
+    buttons: buttonsFor(notation, 'LP+HP'), hitLevel: HitLevel.MID, balconyBreak: true, knockdown: true,
     motion: NOTATION_MOTION(notation), priority: 25, ...extra,
 });
 const SPIRAL = (name, notation, extra) => ({
     name, notation, category: MoveCategory.THROW,
-    buttons: 'LP+HP', hitLevel: HitLevel.THROW, throwType: 'command',
+    buttons: buttonsFor(notation, 'LP+HP'), hitLevel: HitLevel.THROW, throwType: 'command',
     spiral: true, wallThrow: true, knockdown: true, techable: true, range: 0,
     motion: NOTATION_MOTION(notation), priority: 20, ...extra,
 });
@@ -137,9 +170,9 @@ ROSTER.jin = {
     moves: [
         N('Standing LP', '1', { damage: 7, startup: 9, active: 3, recovery: 12, onHit: 5, onBlock: -1, range: 62, hitY: 112, chipDamage: 0, chainCancel: '1' }),
         N4('Standing HP', '2', { damage: 14, startup: 13, active: 4, recovery: 20, onHit: 8, onBlock: -5, range: 72, hitY: 100, chainCancel: '2' }),
-        N2('Crouching LP', 'd1', { damage: 6, startup: 8, active: 3, recovery: 11, onHit: 4, onBlock: -1, requiresCrouch: true, range: 58, hitY: 30, chainCancel: 'd1' }),
-        N3('Crouching HP', 'd2', { damage: 13, startup: 12, active: 4, recovery: 19, onHit: 7, onBlock: -5, requiresCrouch: true, range: 70, hitY: 28 }),
-        N3('Crouching LK (Low)', 'd3', { damage: 8, startup: 13, active: 3, recovery: 16, onHit: 4, onBlock: -3, requiresCrouch: true, range: 66, hitY: 20 }),
+        NL('Crouching LP', 'd1', { damage: 6, startup: 8, active: 3, recovery: 11, onHit: 4, onBlock: -1, requiresCrouch: true, range: 58, hitY: 30, chainCancel: 'd1' }),
+        N4L('Crouching HP', 'd2', { damage: 13, startup: 12, active: 4, recovery: 19, onHit: 7, onBlock: -5, requiresCrouch: true, range: 70, hitY: 28 }),
+        N2('Crouching LK (Low)', 'd3', { damage: 8, startup: 13, active: 3, recovery: 16, onHit: 4, onBlock: -3, requiresCrouch: true, range: 66, hitY: 20 }),
         N('Jump LP', 'uj1', { damage: 10, startup: 6, active: 8, recovery: 12, onHit: 4, requiresAir: true, range: 60, hitY: 40, hitHeight: 50 }),
         N4('Jump HP', 'uj2', { damage: 16, startup: 8, active: 8, recovery: 16, onHit: 6, requiresAir: true, hitLevel: HitLevel.MID, range: 70, hitY: 40, hitHeight: 50 }),
         N2('Jump LK', 'uj3', { damage: 9, startup: 7, active: 6, recovery: 10, onHit: 3, requiresAir: true, range: 58, hitY: 20, hitHeight: 40 }),
@@ -184,9 +217,9 @@ ROSTER.kazuya = {
     moves: [
         N('Standing LP', '1', { damage: 7, startup: 9, active: 3, recovery: 13, onHit: 5, onBlock: -1, range: 62, hitY: 112, chainCancel: '1' }),
         N4('Standing HP', '2', { damage: 15, startup: 14, active: 4, recovery: 21, onHit: 8, onBlock: -6, range: 74, hitY: 100, chainCancel: '2' }),
-        N2('Crouching LP', 'd1', { damage: 6, startup: 8, active: 3, recovery: 12, onHit: 4, onBlock: -1, requiresCrouch: true, range: 58, hitY: 30, chainCancel: 'd1' }),
-        N3('Crouching HP', 'd2', { damage: 14, startup: 12, active: 4, recovery: 20, onHit: 7, onBlock: -6, requiresCrouch: true, range: 70, hitY: 28 }),
-        N3('Crouching LK', 'd3', { damage: 8, startup: 14, active: 3, recovery: 17, onHit: 4, onBlock: -3, requiresCrouch: true, range: 66, hitY: 20 }),
+        NL('Crouching LP', 'd1', { damage: 6, startup: 8, active: 3, recovery: 12, onHit: 4, onBlock: -1, requiresCrouch: true, range: 58, hitY: 30, chainCancel: 'd1' }),
+        N4L('Crouching HP', 'd2', { damage: 14, startup: 12, active: 4, recovery: 20, onHit: 7, onBlock: -6, requiresCrouch: true, range: 70, hitY: 28 }),
+        N2('Crouching LK', 'd3', { damage: 8, startup: 14, active: 3, recovery: 17, onHit: 4, onBlock: -3, requiresCrouch: true, range: 66, hitY: 20 }),
         N('Jump LP', 'uj1', { damage: 10, startup: 6, active: 8, recovery: 12, onHit: 4, requiresAir: true, range: 60, hitY: 40, hitHeight: 50 }),
         N4('Jump HP', 'uj2', { damage: 17, startup: 8, active: 8, recovery: 17, onHit: 6, requiresAir: true, hitLevel: HitLevel.MID, range: 70, hitY: 40, hitHeight: 50 }),
         N2('Jump LK', 'uj3', { damage: 9, startup: 7, active: 6, recovery: 10, onHit: 3, requiresAir: true, range: 58, hitY: 20, hitHeight: 40 }),
@@ -228,9 +261,9 @@ ROSTER.paul = {
     moves: [
         N('Standing LP', '1', { damage: 7, startup: 9, active: 3, recovery: 12, onHit: 5, onBlock: -1, range: 64, hitY: 112, chainCancel: '1' }),
         N4('Standing HP', '2', { damage: 15, startup: 13, active: 4, recovery: 20, onHit: 8, onBlock: -5, range: 74, hitY: 100 }),
-        N2('Crouching LP', 'd1', { damage: 6, startup: 8, active: 3, recovery: 11, onHit: 4, onBlock: -1, requiresCrouch: true, range: 60, hitY: 30, chainCancel: 'd1' }),
-        N3('Crouching HP', 'd2', { damage: 14, startup: 12, active: 4, recovery: 19, onHit: 7, onBlock: -5, requiresCrouch: true, range: 72, hitY: 28 }),
-        N3('Crouching LK', 'd3', { damage: 8, startup: 13, active: 3, recovery: 16, onHit: 4, onBlock: -3, requiresCrouch: true, range: 68, hitY: 20 }),
+        NL('Crouching LP', 'd1', { damage: 6, startup: 8, active: 3, recovery: 11, onHit: 4, onBlock: -1, requiresCrouch: true, range: 60, hitY: 30, chainCancel: 'd1' }),
+        N4L('Crouching HP', 'd2', { damage: 14, startup: 12, active: 4, recovery: 19, onHit: 7, onBlock: -5, requiresCrouch: true, range: 72, hitY: 28 }),
+        N2('Crouching LK', 'd3', { damage: 8, startup: 13, active: 3, recovery: 16, onHit: 4, onBlock: -3, requiresCrouch: true, range: 68, hitY: 20 }),
         N('Jump LP', 'uj1', { damage: 10, startup: 6, active: 8, recovery: 12, onHit: 4, requiresAir: true, range: 60, hitY: 40, hitHeight: 50 }),
         N4('Jump HP', 'uj2', { damage: 17, startup: 8, active: 8, recovery: 16, onHit: 6, requiresAir: true, hitLevel: HitLevel.MID, range: 70, hitY: 40, hitHeight: 50 }),
         N2('Jump LK', 'uj3', { damage: 9, startup: 7, active: 6, recovery: 10, onHit: 3, requiresAir: true, range: 58, hitY: 20, hitHeight: 40 }),
@@ -244,6 +277,7 @@ ROSTER.paul = {
         N('Pouncing PK (Bouncer finisher)', 'jumping 1+2', { damage: 10, startup: 5, active: 10, recovery: 20, onHit: 12, requiresAir: true, range: 60, hitY: 30, hitHeight: 60, bouncer: true, juggleOnly: true, followUpDelay: 8, effectColor: '#ffaa00' }),
         WALL_THROW('Paul Body Slam (Wall)', 'uf+LP+LK', { damage: 26, startup: 5, active: 3, recovery: 28, onHit: 18, onBlock: 0, hitY: 80, wallThrow: true, knockdown: true, techable: true, effectColor: '#ff8800' }),
         WALL_SPLAT('Knee Smash (Wall Splat)', 'ub+1+2', { damage: 22, startup: 17, active: 5, recovery: 28, onHit: 12, onBlock: -6, range: 72, hitY: 92, wallSplat: true, effectColor: '#ff8800' }),
+        HE('Wall Drive', 'ubf+1+2', { damage: 24, startup: 19, active: 6, recovery: 30, onHit: 14, onBlock: -9, range: 78, hitY: 84, launches: true, wallCarry: true, tornado: true, heatEngager: true, effectColor: '#ff8800' }),
         RAGE('Death Fist', 'df+1+2', { damage: 75, startup: 16, active: 14, recovery: 38, onHit: 28, onBlock: -30, range: 100, hitY: 84, launches: true, removesRecoverable: true, effectColor: '#ff2200', damageScalesWithMissingHealth: true }),
         TH('Throw', 'f+LP+LK', { damage: 24, startup: 5, active: 3, recovery: 26, onHit: 16, onBlock: 0, range: 60, hitY: 80, knockdown: true, techable: true, throwBreak: 9 }),
         HS('Heat Smash (Phoenix Smasher)', 'Heat HP+HK', { damage: 46, startup: 18, active: 6, recovery: 30, onHit: 22, onBlock: 2, range: 96, hitY: 84, launches: true, requiresTwoBars: true, effectColor: '#ff8800' }),
@@ -266,9 +300,9 @@ ROSTER.king = {
     moves: [
         N('Standing LP', '1', { damage: 8, startup: 11, active: 3, recovery: 14, onHit: 5, onBlock: -1, range: 64, hitY: 110, chainCancel: '1' }),
         N4('Standing HP', '2', { damage: 17, startup: 16, active: 4, recovery: 22, onHit: 9, onBlock: -7, range: 76, hitY: 98 }),
-        N2('Crouching LP', 'd1', { damage: 7, startup: 10, active: 3, recovery: 13, onHit: 4, onBlock: -1, requiresCrouch: true, range: 60, hitY: 30, chainCancel: 'd1' }),
-        N3('Crouching HP', 'd2', { damage: 15, startup: 14, active: 4, recovery: 21, onHit: 8, onBlock: -6, requiresCrouch: true, range: 72, hitY: 28 }),
-        N3('Crouching LK', 'd3', { damage: 9, startup: 15, active: 3, recovery: 18, onHit: 4, onBlock: -4, requiresCrouch: true, range: 70, hitY: 20 }),
+        NL('Crouching LP', 'd1', { damage: 7, startup: 10, active: 3, recovery: 13, onHit: 4, onBlock: -1, requiresCrouch: true, range: 60, hitY: 30, chainCancel: 'd1' }),
+        N4L('Crouching HP', 'd2', { damage: 15, startup: 14, active: 4, recovery: 21, onHit: 8, onBlock: -6, requiresCrouch: true, range: 72, hitY: 28 }),
+        N2('Crouching LK', 'd3', { damage: 9, startup: 15, active: 3, recovery: 18, onHit: 4, onBlock: -4, requiresCrouch: true, range: 70, hitY: 20 }),
         N('Jump LP', 'uj1', { damage: 11, startup: 7, active: 8, recovery: 14, onHit: 4, requiresAir: true, range: 60, hitY: 40, hitHeight: 50 }),
         N4('Jump HP', 'uj2', { damage: 19, startup: 9, active: 8, recovery: 18, onHit: 6, requiresAir: true, hitLevel: HitLevel.MID, range: 70, hitY: 40, hitHeight: 50 }),
         N2('Jump LK', 'uj3', { damage: 10, startup: 8, active: 6, recovery: 12, onHit: 3, requiresAir: true, range: 58, hitY: 20, hitHeight: 40 }),
@@ -303,9 +337,9 @@ ROSTER.xiaoyu = {
     moves: [
         N('Standing LP', '1', { damage: 6, startup: 8, active: 3, recovery: 11, onHit: 5, onBlock: 0, range: 58, hitY: 108, chainCancel: '1' }),
         N4('Standing HP', '2', { damage: 13, startup: 12, active: 4, recovery: 19, onHit: 8, onBlock: -5, range: 70, hitY: 98 }),
-        N2('Crouching LP', 'd1', { damage: 5, startup: 7, active: 3, recovery: 10, onHit: 4, onBlock: 0, requiresCrouch: true, range: 56, hitY: 28, chainCancel: 'd1' }),
-        N3('Crouching HP', 'd2', { damage: 12, startup: 11, active: 4, recovery: 18, onHit: 7, onBlock: -5, requiresCrouch: true, range: 68, hitY: 26 }),
-        N3('Crouching LK', 'd3', { damage: 7, startup: 12, active: 3, recovery: 15, onHit: 4, onBlock: -2, requiresCrouch: true, range: 64, hitY: 18 }),
+        NL('Crouching LP', 'd1', { damage: 5, startup: 7, active: 3, recovery: 10, onHit: 4, onBlock: 0, requiresCrouch: true, range: 56, hitY: 28, chainCancel: 'd1' }),
+        N4L('Crouching HP', 'd2', { damage: 12, startup: 11, active: 4, recovery: 18, onHit: 7, onBlock: -5, requiresCrouch: true, range: 68, hitY: 26 }),
+        N2('Crouching LK', 'd3', { damage: 7, startup: 12, active: 3, recovery: 15, onHit: 4, onBlock: -2, requiresCrouch: true, range: 64, hitY: 18 }),
         N('Jump LP', 'uj1', { damage: 9, startup: 5, active: 8, recovery: 11, onHit: 4, requiresAir: true, range: 58, hitY: 40, hitHeight: 50 }),
         N4('Jump HP', 'uj2', { damage: 15, startup: 7, active: 8, recovery: 15, onHit: 6, requiresAir: true, hitLevel: HitLevel.MID, range: 68, hitY: 40, hitHeight: 50 }),
         N2('Jump LK', 'uj3', { damage: 8, startup: 6, active: 6, recovery: 9, onHit: 3, requiresAir: true, range: 56, hitY: 20, hitHeight: 40 }),
@@ -346,9 +380,9 @@ ROSTER.law = {
     moves: [
         N('Standing LP', '1', { damage: 6, startup: 8, active: 3, recovery: 11, onHit: 5, onBlock: 0, range: 60, hitY: 110, chainCancel: '1' }),
         N4('Standing HP', '2', { damage: 14, startup: 12, active: 4, recovery: 19, onHit: 8, onBlock: -5, range: 72, hitY: 98 }),
-        N2('Crouching LP', 'd1', { damage: 5, startup: 7, active: 3, recovery: 10, onHit: 4, onBlock: 0, requiresCrouch: true, range: 58, hitY: 28, chainCancel: 'd1' }),
-        N3('Crouching HP', 'd2', { damage: 13, startup: 11, active: 4, recovery: 18, onHit: 7, onBlock: -5, requiresCrouch: true, range: 70, hitY: 26 }),
-        N3('Crouching LK', 'd3', { damage: 7, startup: 12, active: 3, recovery: 15, onHit: 4, onBlock: -2, requiresCrouch: true, range: 66, hitY: 18 }),
+        NL('Crouching LP', 'd1', { damage: 5, startup: 7, active: 3, recovery: 10, onHit: 4, onBlock: 0, requiresCrouch: true, range: 58, hitY: 28, chainCancel: 'd1' }),
+        N4L('Crouching HP', 'd2', { damage: 13, startup: 11, active: 4, recovery: 18, onHit: 7, onBlock: -5, requiresCrouch: true, range: 70, hitY: 26 }),
+        N2('Crouching LK', 'd3', { damage: 7, startup: 12, active: 3, recovery: 15, onHit: 4, onBlock: -2, requiresCrouch: true, range: 66, hitY: 18 }),
         N('Jump LP', 'uj1', { damage: 9, startup: 5, active: 8, recovery: 11, onHit: 4, requiresAir: true, range: 58, hitY: 40, hitHeight: 50 }),
         N4('Jump HP', 'uj2', { damage: 16, startup: 7, active: 8, recovery: 15, onHit: 6, requiresAir: true, hitLevel: HitLevel.MID, range: 68, hitY: 40, hitHeight: 50 }),
         N2('Jump LK', 'uj3', { damage: 8, startup: 6, active: 6, recovery: 9, onHit: 3, requiresAir: true, range: 56, hitY: 20, hitHeight: 40 }),
@@ -387,9 +421,9 @@ ROSTER.nina = {
     moves: [
         N('Standing LP', '1', { damage: 6, startup: 8, active: 3, recovery: 11, onHit: 4, onBlock: -1, range: 58, hitY: 108, chainCancel: '1' }),
         N4('Standing HP', '2', { damage: 13, startup: 12, active: 4, recovery: 19, onHit: 7, onBlock: -6, range: 70, hitY: 96 }),
-        N2('Crouching LP', 'd1', { damage: 5, startup: 7, active: 3, recovery: 10, onHit: 3, onBlock: -1, requiresCrouch: true, range: 56, hitY: 28, chainCancel: 'd1' }),
-        N3('Crouching HP', 'd2', { damage: 12, startup: 11, active: 4, recovery: 18, onHit: 6, onBlock: -6, requiresCrouch: true, range: 68, hitY: 26 }),
-        N3('Crouching LK', 'd3', { damage: 7, startup: 12, active: 3, recovery: 15, onHit: 4, onBlock: -3, requiresCrouch: true, range: 64, hitY: 18 }),
+        NL('Crouching LP', 'd1', { damage: 5, startup: 7, active: 3, recovery: 10, onHit: 3, onBlock: -1, requiresCrouch: true, range: 56, hitY: 28, chainCancel: 'd1' }),
+        N4L('Crouching HP', 'd2', { damage: 12, startup: 11, active: 4, recovery: 18, onHit: 6, onBlock: -6, requiresCrouch: true, range: 68, hitY: 26 }),
+        N2('Crouching LK', 'd3', { damage: 7, startup: 12, active: 3, recovery: 15, onHit: 4, onBlock: -3, requiresCrouch: true, range: 64, hitY: 18 }),
         N('Jump LP', 'uj1', { damage: 9, startup: 5, active: 8, recovery: 11, onHit: 3, requiresAir: true, range: 58, hitY: 40, hitHeight: 50 }),
         N4('Jump HP', 'uj2', { damage: 15, startup: 7, active: 8, recovery: 15, onHit: 5, requiresAir: true, hitLevel: HitLevel.MID, range: 68, hitY: 40, hitHeight: 50 }),
         N2('Jump LK', 'uj3', { damage: 8, startup: 6, active: 6, recovery: 9, onHit: 3, requiresAir: true, range: 56, hitY: 20, hitHeight: 40 }),
@@ -429,9 +463,9 @@ ROSTER.bryan = {
     moves: [
         N('Standing LP', '1', { damage: 7, startup: 9, active: 3, recovery: 12, onHit: 5, onBlock: -1, range: 62, hitY: 112, chainCancel: '1' }),
         N4('Standing HP', '2', { damage: 15, startup: 13, active: 4, recovery: 20, onHit: 8, onBlock: -6, range: 74, hitY: 100 }),
-        N2('Crouching LP', 'd1', { damage: 6, startup: 8, active: 3, recovery: 11, onHit: 4, onBlock: -1, requiresCrouch: true, range: 60, hitY: 30, chainCancel: 'd1' }),
-        N3('Crouching HP', 'd2', { damage: 14, startup: 12, active: 4, recovery: 19, onHit: 7, onBlock: -6, requiresCrouch: true, range: 72, hitY: 28 }),
-        N3('Crouching LK', 'd3', { damage: 8, startup: 13, active: 3, recovery: 16, onHit: 4, onBlock: -3, requiresCrouch: true, range: 68, hitY: 20 }),
+        NL('Crouching LP', 'd1', { damage: 6, startup: 8, active: 3, recovery: 11, onHit: 4, onBlock: -1, requiresCrouch: true, range: 60, hitY: 30, chainCancel: 'd1' }),
+        N4L('Crouching HP', 'd2', { damage: 14, startup: 12, active: 4, recovery: 19, onHit: 7, onBlock: -6, requiresCrouch: true, range: 72, hitY: 28 }),
+        N2('Crouching LK', 'd3', { damage: 8, startup: 13, active: 3, recovery: 16, onHit: 4, onBlock: -3, requiresCrouch: true, range: 68, hitY: 20 }),
         N('Jump LP', 'uj1', { damage: 10, startup: 6, active: 8, recovery: 12, onHit: 4, requiresAir: true, range: 60, hitY: 40, hitHeight: 50 }),
         N4('Jump HP', 'uj2', { damage: 17, startup: 8, active: 8, recovery: 16, onHit: 6, requiresAir: true, hitLevel: HitLevel.MID, range: 70, hitY: 40, hitHeight: 50 }),
         N2('Jump LK', 'uj3', { damage: 9, startup: 7, active: 6, recovery: 10, onHit: 3, requiresAir: true, range: 58, hitY: 20, hitHeight: 40 }),
@@ -466,9 +500,9 @@ ROSTER.yoshimitsu = {
     moves: [
         N('Standing LP', '1', { damage: 6, startup: 8, active: 3, recovery: 11, onHit: 5, onBlock: 0, range: 60, hitY: 110, chainCancel: '1' }),
         N4('Standing HP', '2', { damage: 14, startup: 12, active: 4, recovery: 19, onHit: 8, onBlock: -5, range: 72, hitY: 98 }),
-        N2('Crouching LP', 'd1', { damage: 5, startup: 7, active: 3, recovery: 10, onHit: 4, onBlock: 0, requiresCrouch: true, range: 58, hitY: 28, chainCancel: 'd1' }),
-        N3('Crouching HP', 'd2', { damage: 13, startup: 11, active: 4, recovery: 18, onHit: 7, onBlock: -5, requiresCrouch: true, range: 70, hitY: 26 }),
-        N3('Crouching LK', 'd3', { damage: 7, startup: 12, active: 3, recovery: 15, onHit: 4, onBlock: -2, requiresCrouch: true, range: 66, hitY: 18 }),
+        NL('Crouching LP', 'd1', { damage: 5, startup: 7, active: 3, recovery: 10, onHit: 4, onBlock: 0, requiresCrouch: true, range: 58, hitY: 28, chainCancel: 'd1' }),
+        N4L('Crouching HP', 'd2', { damage: 13, startup: 11, active: 4, recovery: 18, onHit: 7, onBlock: -5, requiresCrouch: true, range: 70, hitY: 26 }),
+        N2('Crouching LK', 'd3', { damage: 7, startup: 12, active: 3, recovery: 15, onHit: 4, onBlock: -2, requiresCrouch: true, range: 66, hitY: 18 }),
         N('Jump LP', 'uj1', { damage: 9, startup: 5, active: 8, recovery: 11, onHit: 4, requiresAir: true, range: 58, hitY: 40, hitHeight: 50 }),
         N4('Jump HP', 'uj2', { damage: 16, startup: 7, active: 8, recovery: 15, onHit: 6, requiresAir: true, hitLevel: HitLevel.MID, range: 68, hitY: 40, hitHeight: 50 }),
         N2('Jump LK', 'uj3', { damage: 8, startup: 6, active: 6, recovery: 9, onHit: 3, requiresAir: true, range: 56, hitY: 20, hitHeight: 40 }),

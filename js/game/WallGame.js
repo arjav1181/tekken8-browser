@@ -16,7 +16,7 @@ export const WALL = {
     BALCONY_BREAK_FRAMES: 90,
     BALCONY_KNOCKDOWN_FRAMES: 46,
     WALL_THROW_WINDOW: 14,
-    JUGGLE_CAP_WALL: 3,
+    JUGGLE_CAP_WALL: 4,
 };
 
 export function wallDistance(fighter) {
@@ -57,7 +57,7 @@ export function applyWallSplat(victim, attacker, move) {
     victim.vz = 0;
     victim.wallSide = wallSideOf(victim);
     victim.wallSplattedBy = attacker;
-    victim.floorBounces = 1;
+    victim.floorBounces = 0;
     victim.juggleCount = 0;
     victim.tornadoFrames = 0;
     victim.armorFrames = 0;
@@ -129,18 +129,10 @@ export function updateWallGame(fighter, opponent) {
         fighter.tornadoFrames = 0;
     }
 
-    if (fighter.isBouncedOut && fighter.state === 'wallBounce') {
-        const moved = fighter.x * -1 > WALL.LIMIT - 12;
-        if (moved || fighter.stateFrame >= WALL.BOUNCE_FRAMES) {
-            fighter.isBouncedOut = false;
-            if (moved) {
-                fighter.setState('ringOut', 60);
-                fighter.isRingOut = true;
-                result.ringOut = true;
-            } else {
-                fighter.setState('knockdown', 46);
-            }
-        }
+    if (fighter.isBouncedOut && fighter.x * -1 > WALL.LIMIT) {
+        fighter.setState('ringOut', 60);
+        fighter.isRingOut = true;
+        result.ringOut = true;
     }
 
     return result;

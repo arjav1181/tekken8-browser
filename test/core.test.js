@@ -1,4 +1,4 @@
-import { MotionParser, toNumpad, toRelative, encodeInput, decodeInput, InputBuffer } from '../js/game/MotionInput.js';
+import { createMotionParser, toNumpad, toRelative, encodeInput, decodeInput, InputBuffer } from '../js/game/MotionInput.js';
 import { Move, HitLevel, MoveCategory, getPenalizedDamage } from '../js/game/Move.js';
 import { CHARACTERS, ROSTER } from '../js/data/roster.js';
 import { STAGES, getStage } from '../js/data/stages.js';
@@ -67,67 +67,67 @@ test('input encode/decode round-trips', () => {
 });
 
 test('qcf 236 detected', () => {
-    const p = new MotionParser();
+    const p = createMotionParser();
     feed(p, [[2], [3], [6]]);
     assert(p.hasMotion([2, 3, 6]), 'QCF should match');
 });
 
 test('qcb 214 detected', () => {
-    const p = new MotionParser();
+    const p = createMotionParser();
     feed(p, [[2], [1], [4]]);
     assert(p.hasMotion([2, 1, 4]), 'QCB should match');
 });
 
 test('dp 623 detected', () => {
-    const p = new MotionParser();
+    const p = createMotionParser();
     feed(p, [[6], [2], [3]]);
     assert(p.hasMotion([6, 2, 3]), 'DP should match');
 });
 
 test('hcf 41236 detected', () => {
-    const p = new MotionParser();
+    const p = createMotionParser();
     feed(p, [[4], [1], [2], [3], [6]]);
     assert(p.hasMotion([4, 1, 2, 3, 6]), 'HCF should match');
 });
 
 test('neutral gaps allowed inside motion', () => {
-    const p = new MotionParser();
+    const p = createMotionParser();
     feed(p, [[2], [5], [3], [5], [6]]);
     assert(p.hasMotion([2, 3, 6]), 'neutral between inputs should be skipped');
 });
 
 test('double forward f,f detected as sequence', () => {
-    const p = new MotionParser();
+    const p = createMotionParser();
     feed(p, [[3], [5], [3]]);
     assert(p.hasSequence([3, 3], 10), 'ff should match (tap, release, tap)');
 });
 
 test('double back b,b detected', () => {
-    const p = new MotionParser();
+    const p = createMotionParser();
     feed(p, [[4], [5], [4]]);
     assert(p.hasSequence([4, 4], 10), 'bb should match');
 });
 
 test('held forward is not a double tap', () => {
-    const p = new MotionParser();
+    const p = createMotionParser();
     feed(p, [[3], [3], [3]]);
     assert(!p.hasSequence([3, 3], 4), 'holding forward is not ff');
 });
 
 test('rage motion 2312 detected', () => {
-    const p = new MotionParser();
+    const p = createMotionParser();
     feed(p, [[2], [3], [1], [2]]);
     assert(p.hasSequence([2, 3, 1, 2], 18), 'rage art motion should match');
 });
 
 test('reversal motion ~1+2 detected', () => {
-    const p = new MotionParser();
+    const p = createMotionParser();
     feed(p, [[4], [1], [2], [3], [6]]);
     assert(p.hasMotion([4, 1, 2, 3, 6]), 'reversal HCF should match');
 });
 
 test('button press is edge-buffered for 4 frames', () => {
-    const p = new MotionParser();
+    const p = createMotionParser();
     feed(p, [[5], [5, { leftPunch: true }]]);
     assert(p.isPressed('leftPunch'), 'pressed immediately');
     p.tick();

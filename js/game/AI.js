@@ -77,6 +77,7 @@ export class AIController {
     update(self, opponent) {
         if (!self || !opponent) return {};
 
+        this.fighter = self;
         this.decisionFrame++;
         this.planFrame++;
 
@@ -192,7 +193,7 @@ export class AIController {
     }
 
     pickPoke(self, rand) {
-        const moves = (self.character?.moves || []).filter(m =>
+        const moves = (self.moveset?.moves || self.config?.moves || []).filter(m =>
             m.damage > 0 && m.range > 60 && !m.throws && m.hitLevel !== HitLevel.THROW &&
             (m.onBlock || 0) >= -8 && !m.requiresAir && !m.requiresCrouch && !m.launches &&
             !m.stanceOnly && !m.reversal && m.category === 'normal'
@@ -209,7 +210,7 @@ export class AIController {
             return this.doThrow(self);
         }
 
-        const punishMoves = (self.character?.moves || []).filter(m =>
+        const punishMoves = (self.moveset?.moves || self.config?.moves || []).filter(m =>
             m.damage > 8 && m.startup <= 18 &&
             (m.range >= dist * self.scale - 30) &&
             !m.requiresAir && !m.reversal &&
@@ -231,13 +232,13 @@ export class AIController {
     }
 
     antiAir(self) {
-        const aaMoves = (self.character?.moves || []).filter(m =>
+        const aaMoves = (self.moveset?.moves || self.config?.moves || []).filter(m =>
             m.launches && m.startup <= 10
         );
         if (aaMoves.length > 0) {
             return this.executeNotation(aaMoves[0]);
         }
-        const uppers = (self.character?.moves || []).filter(m =>
+        const uppers = (self.moveset?.moves || self.config?.moves || []).filter(m =>
             m.hitLevel === 'mid' && m.startup <= 9 && !m.requiresAir
         );
         if (uppers.length > 0) {
@@ -275,7 +276,7 @@ export class AIController {
         const r = rand();
 
         if (r < p.throwChance) return this.doThrow(self);
-        if (r < p.throwChance + p.aggroThrow(self)) return this.doThrow(self);
+        if (r < p.throwChance + this.aggroThrow(self)) return this.doThrow(self);
 
         if (r < 0.35) {
             if (Math.random() < 0.4) {
@@ -314,7 +315,7 @@ export class AIController {
     }
 
     pickLow(self) {
-        const lows = (self.character?.moves || []).filter(m =>
+        const lows = (self.moveset?.moves || self.config?.moves || []).filter(m =>
             m.hitLevel === HitLevel.LOW && m.damage > 0 && !m.requiresAir && !m.stanceOnly && !m.requiresCrouch
         );
         if (lows.length === 0) return null;
@@ -322,7 +323,7 @@ export class AIController {
     }
 
     pickLauncher(self) {
-        const launchers = (self.character?.moves || []).filter(m =>
+        const launchers = (self.moveset?.moves || self.config?.moves || []).filter(m =>
             m.launches && m.startup <= 24 && !m.requiresAir && !m.stanceOnly && !m.reversal &&
             m.hitLevel !== HitLevel.THROW
         );
@@ -331,7 +332,8 @@ export class AIController {
     }
 
     setupCombo(after) {
-        const followups = (this.character?.moves || []).filter(m =>
+        const src = this.fighter;
+        const followups = (src?.moveset?.moves || src?.config?.moves || []).filter(m =>
             m.damage > 0 && m.startup <= 12 && !m.requiresAir && !m.launches &&
             m.hitLevel !== HitLevel.THROW && m.notation !== after.notation
         );
@@ -359,7 +361,7 @@ export class AIController {
     }
 
     doThrow(self) {
-        const throws = (self.character?.moves || []).filter(m => m.hitLevel === HitLevel.THROW && m.techable);
+        const throws = (self.moveset?.moves || self.config?.moves || []).filter(m => m.hitLevel === HitLevel.THROW && m.techable);
         if (throws.length > 0) {
             const t = throws[Math.floor(Math.random() * throws.length)];
             return this.executeNotation(t);
@@ -368,19 +370,19 @@ export class AIController {
     }
 
     doReversal(self) {
-        const revs = (self.character?.moves || []).filter(m => m.reversal);
+        const revs = (self.moveset?.moves || self.config?.moves || []).filter(m => m.reversal);
         if (revs.length > 0) return this.executeNotation(revs[0]);
         return { block: true, down: true };
     }
 
     doRageArt(self) {
-        const rage = (self.character?.moves || []).find(m => m.category === 'rage_art');
+        const rage = (self.moveset?.moves || self.config?.moves || []).find(m => m.category === 'rage_art');
         if (rage) return this.executeNotation(rage);
         return {};
     }
 
     useHeatMove(self) {
-        const heat = (self.character?.moves || []).filter(m => m.category === 'heat_smash');
+        const heat = (self.moveset?.moves || self.config?.moves || []).filter(m => m.category === 'heat_smash');
         if (heat.length > 0 && self.heatEnergy >= 2) {
             return this.executeNotation(heat[0]);
         }

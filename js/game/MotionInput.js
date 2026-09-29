@@ -115,6 +115,33 @@ export class InputBuffer {
         return p >= dirs.length;
     }
 
+    hasSequenceSince(pattern, maxGap = 14, minFrame = -Infinity) {
+        const dirs = pattern.map(d => (typeof d === 'number' ? d : d.charCodeAt(0)));
+        let p = 0;
+        let lastFrame = -999;
+        for (let i = 0; i < this.history.length; i++) {
+            const entry = this.history[i];
+            if (entry.frame < minFrame) continue;
+            if (entry.dir === 5) continue;
+            if (entry.dir === dirs[p]) {
+                if (entry.frame - lastFrame > maxGap) {
+                    if (p > 0) return false;
+                }
+                lastFrame = entry.frame;
+                p++;
+                if (p >= dirs.length) return true;
+            }
+        }
+        return p >= dirs.length;
+    }
+
+    frameOfLastMotion() {
+        for (let i = this.history.length - 1; i >= 0; i--) {
+            if (this.history[i].dir !== 5) return this.history[i].frame;
+        }
+        return -Infinity;
+    }
+
     clear() {
         this.history = [];
     }
@@ -124,7 +151,7 @@ export class InputBuffer {
     }
 }
 
-export class MotionParser {
+class MotionParser {
     constructor() {
         this.buffer = new InputBuffer();
         this.lastNumPad = 5;
@@ -241,3 +268,5 @@ export function decodeInput(encoded, facing) {
         special: !!(buttons & 128),
     };
 }
+
+export const createMotionParser = () => new MotionParser();

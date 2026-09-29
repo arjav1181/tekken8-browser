@@ -9,8 +9,9 @@
     "test": "node test/core.test.js",
     "test:core": "node test/core.test.js",
     "test:ws": "node test/ws.test.cjs",
+    "test:game": "node test/game.test.mjs",
     "test:browser": "node test/browser.test.mjs",
-    "test:all": "node test/core.test.js && node test/ws.test.cjs && node test/browser.test.mjs"
+    "test:all": "node test/core.test.js && node test/game.test.mjs && node test/ws.test.cjs"
   },
   "devDependencies": {
     "playwright": "^1.49.0"

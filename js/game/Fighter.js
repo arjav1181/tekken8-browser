@@ -1,4 +1,4 @@
-import { MoveParser, toNumpad, toRelative } from './MotionInput.js';
+import { createMotionParser, toNumpad, toRelative } from './MotionInput.js';
 import { MoveSet } from './MoveSet.js';
 import {
     WALL,
@@ -162,7 +162,7 @@ export class Fighter {
         this.comboScalingActive = false;
 
         this.wins = 0;
-        this.parser = new MoveParser();
+        this.parser = createMotionParser();
         this.moveset = new MoveSet(this);
         this.floorBounces = 0;
         this.freezeFrames = 0;
@@ -320,11 +320,11 @@ export class Fighter {
         this.animFrame++;
 
         this.updateTimers();
-        this.updatePhysicalMotion(opponent);
         this.updateCharging(input);
         this.updateGuards();
         this.updateMoves();
         this.updateStateMachine(input, opponent);
+        this.updatePhysicalMotion(opponent);
 
         this.updateHsdCharge(input);
         this.updateComboTimer();
@@ -346,6 +346,8 @@ export class Fighter {
             const oppHurting = opp && (opp.hitStunFrames > 0 || opp.state === State.KNOCKDOWN || opp.state === State.HITSTUN_AIR);
             if (!oppHurting) this.heatTimer--;
             if (this.heatTimer <= 0) this.endHeat();
+        } else if (!this.heatBurstUsed) {
+            this.heatMeter = Math.min(this.maxHeatMeter, this.heatMeter + 0.2);
         }
     }
 
@@ -409,8 +411,10 @@ export class Fighter {
         }
         this.grounded = true;
         this.isJumping = false;
-        if (this.state === State.HITSTUN_AIR || this.state === State.JUGGLE_HIT) {
+        if (this.state === State.HITSTUN_AIR) {
             this.setState(State.KNOCKDOWN, T.KNOCKDOWN);
+        } else if (this.state === State.JUMP || this.state === State.AIRBORNE) {
+            this.setState(State.IDLE);
         }
     }
 
@@ -486,6 +490,18 @@ export class Fighter {
 
     updateStateMachine(input, opponent) {
         const move = this.moveset.find(this.parser);
+
+        const dashish = this.state === State.DASH_F || this.state === State.DASH_B ||
+                        this.state === State.BACKDASH || this.state === State.SIDESTEP_L ||
+                        this.state === State.SIDESTEP_R;
+        if (dashish && move && move.motion) {
+            for (const btn of Object.keys(BUTTON_ALIASES)) {
+                if (this.parser.isPressed(btn)) this.parser.consume(btn);
+            }
+            this.parser.buffer.clear();
+            this.startMove(move);
+            return;
+        }
 
         if (this.currentMove && this.canCancel) {
             if (move && this.canCancelInto(this.currentMove, move)) {
@@ -564,7 +580,10 @@ export class Fighter {
             case State.BALCONY_BREAK:
                 this.animState = 'wallSplat';
                 if (this.stateFrame >= T.BALCONY_BREAK_FRAMES) {
-                    this.setState(State.WALL_BOUNCE, T.WALL_BOUNCE);
+                    this.applyWallBounce();
+                    this.floorBounces = 0;
+                    this.isBouncedOut = true;
+                    this.invulnFrames = 0;
                 }
                 break;
             case State.RING_OUT:
@@ -633,11 +652,12 @@ export class Fighter {
 
         const dist = opponent ? Math.abs(this.x - opponent.x) : 200;
 
-        if (this.parser.hasSequence([3, 3], 10) && this.state === State.IDLE) {
+        const wm = (this.lastDashMotionFrame ?? -Infinity) + 1;
+        if (this.parser.buffer.hasSequenceSince([3, 3], 10, wm) && this.state === State.IDLE) {
             this.startDash(State.DASH_F, 1);
             return;
         }
-        if (this.parser.hasSequence([4, 4], 10)) {
+        if (this.parser.buffer.hasSequenceSince([4, 4], 10, wm)) {
             this.startBackdash();
             return;
         }
@@ -669,8 +689,8 @@ export class Fighter {
             this.isJumping = true;
             this.grounded = false;
             this.vz = 14 * (this.config.jumpPower || 1) * this.scale;
-            if (forward) { this.vx = 4.5; this.setState(State.JUMP); }
-            else if (back) { this.vx = -3.5; this.setState(State.JUMP); }
+            if (forward) { this.vx = this.facing * 4.5; this.setState(State.JUMP); }
+            else if (back) { this.vx = -this.facing * 3.5; this.setState(State.JUMP); }
             else { this.setState(State.JUMP); }
             this.isCrouching = false;
             return;
@@ -679,8 +699,8 @@ export class Fighter {
         if (down) {
             this.isCrouching = true;
             this.setState(State.CROUCH);
-            if (back) this.vx = -2.2;
-            else if (forward) this.vx = 2.2;
+            if (back) this.vx = -this.facing * 2.2;
+            else if (forward) this.vx = this.facing * 2.2;
             return;
         }
 
@@ -688,11 +708,11 @@ export class Fighter {
 
         if (forward) {
             this.setState(State.WALK_F);
-            this.vx = 3.4 * (this.config.speed || 1) * this.scale;
+            this.vx = this.facing * 3.4 * (this.config.speed || 1) * this.scale;
             this.animState = 'walkF';
         } else if (back) {
             this.setState(State.WALK_B);
-            this.vx = -2.6 * (this.config.speed || 1) * this.scale;
+            this.vx = -this.facing * 2.6 * (this.config.speed || 1) * this.scale;
             this.animState = 'walkB';
         } else {
             this.setState(this.stance !== Stance.NONE ? State.STANCE_IDLE : State.IDLE);
@@ -752,12 +772,14 @@ export class Fighter {
     }
 
     startDash(type, count) {
+        this.lastDashMotionFrame = this.parser.buffer.frameOfLastMotion();
         this.setState(type, T.DASH_F);
         this.vx = (type === State.DASH_F ? 1 : -1) * 12 * (this.config.speed || 1);
         this.dashCount = count;
     }
 
     startBackdash() {
+        this.lastDashMotionFrame = this.parser.buffer.frameOfLastMotion();
         this.setState(State.BACKDASH, T.BACKDASH);
         this.vx = -11;
         this.invulnFrames = 5;
@@ -886,6 +908,8 @@ export class Fighter {
             damage = Math.floor(mv.damage * (0.55 + missing * 0.9));
         }
         damage = getPenalizedDamage(damage, attacker.comboCount);
+        if (attacker.heatActive) damage = Math.floor(damage * 1.15);
+        if (attacker.rageActive) damage = Math.floor(damage * 1.25);
 
         const result = {
             damage, blocked, move: mv,
@@ -951,7 +975,7 @@ export class Fighter {
         }
 
         this.recoverableHealth = Math.max(0, this.recoverableHealth - Math.floor(result.damage * 0.4));
-        this.hitStunFrames = mv.hitStunFrames();
+        this.hitStunFrames = mv.hitstunFrames();
         this.hitstopFrames = mv.hitstop;
         attacker.hitstopFrames = mv.hitstop;
         attacker.moveHitsThisInstance++;
@@ -986,6 +1010,11 @@ export class Fighter {
 
         if (mv.unblockable) {
             this.blockStunFrames = 0;
+        }
+
+        if (mv.tornado && (this.z > 0 || this.tornadoFrames > 0)) {
+            this.tornadoFrames = Math.max(this.tornadoFrames, WALL.TORNADO_FRAMES);
+            attacker.tornadoUsedThisCombo = true;
         }
 
         if (mv.launches || mv.airborne) {
@@ -1051,14 +1080,6 @@ export class Fighter {
             this.setState(State.HITSTUN_AIR, 90);
             this.animState = 'juggle';
             return;
-        }
-
-        if (mv.tornado && (this.z > 0 || this.tornadoFrames > 0)) {
-            this.tornadoFrames = Math.max(this.tornadoFrames, WALL.TORNADO_FRAMES);
-            this.vx = 0;
-            this.wallCarry = true;
-            this.animState = 'juggle';
-            attacker.tornadoUsedThisCombo = true;
         }
 
         if (mv.spiral && nearWall) {

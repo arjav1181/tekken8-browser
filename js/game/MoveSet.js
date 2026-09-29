@@ -1,4 +1,4 @@
-import { HitLevel, MoveCategory, Stance } from './Move.js';
+import { HitLevel, MoveCategory, Stance, Move } from './Move.js';
 import { isAgainstWall } from './WallGame.js';
 
 const BUTTON_SETS = {
@@ -26,8 +26,13 @@ function matchButtons(parser, buttons) {
 export class MoveSet {
     constructor(fighter) {
         this.fighter = fighter;
-        this.moves = fighter.config.moves;
+        this.defs = fighter.config.moves;
+        this.moves = this.defs.map(d => (d instanceof Move ? d : new Move(d)));
         this.numpadMoves = this.buildNumpadIndex();
+    }
+
+    byName(name) {
+        return this.moves.find(m => m.name === name) || null;
     }
 
     buildNumpadIndex() {
@@ -75,7 +80,8 @@ export class MoveSet {
         }
 
         if (candidates.length === 0) return null;
-        return candidates.reduce((best, m) => (m.priority || 0) > (best.priority || 0) ? m : best);
+        const rank = (m) => (m.motion ? 10 : 0) + (m.priority || 0);
+        return candidates.reduce((best, m) => (rank(m) > rank(best) ? m : best));
     }
 
     matches(move, parser) {
@@ -98,6 +104,10 @@ export class MoveSet {
         if (!matchButtons(parser, move.buttons)) return false;
 
         if (move.motion) {
+            const repeated = move.motion.length >= 2 &&
+                move.motion[0] === move.motion[1] &&
+                (move.motion[0] === 3 || move.motion[0] === 4);
+            if (repeated) return parser.hasSequence(move.motion, 12);
             return parser.hasMotion(move.motion);
         }
 
