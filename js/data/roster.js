@@ -108,7 +108,7 @@ const BALCONY = (name, notation, extra) => ({
 const SPIRAL = (name, notation, extra) => ({
     name, notation, category: MoveCategory.THROW,
     buttons: 'LP+HP', hitLevel: HitLevel.THROW, throwType: 'command',
-    spiral: true, knockdown: true, techable: true,
+    spiral: true, wallThrow: true, knockdown: true, techable: true, range: 0,
     motion: NOTATION_MOTION(notation), priority: 20, ...extra,
 });
 const PK = (name, notation, extra) => ({

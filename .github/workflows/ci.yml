@@ -31,9 +31,11 @@ jobs:
         run: node test/core.test.js
 
       - name: Gameplay suite
+        if: always()
         run: node test/game.test.js
 
       - name: Wall game suite
+        if: always()
         run: node test/wall.test.js
 
   relay:
