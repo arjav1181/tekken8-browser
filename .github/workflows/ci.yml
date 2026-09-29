@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['20', '22']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Syntax check
+        run: |
+          for f in $(find js -name '*.js'); do node --check "$f"; done
+          node --check server.cjs
+          node --check ws.cjs
+
+      - name: Core systems
+        run: node test/core.test.js
+
+      - name: Gameplay suite
+        run: node test/game.test.js
+
+      - name: Wall game suite
+        run: node test/wall.test.js
+
+  relay:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Start server
+        run: node server.cjs &
+
+      - name: Wait for server
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3000/ > /dev/null; then echo "up"; exit 0; fi
+            sleep 1
+          done
+          echo "server did not start"; exit 1
+
+      - name: Static routes
+        run: |
+          for p in / /js/main.js /css/style.css /js/data/roster.js; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:3000$p")
+            echo "$p -> $code"
+            test "$code" = "200" || exit 1
+          done
+
+      - name: Room API
+        run: |
+          curl -sf -X POST http://localhost:3000/api/room | tee /dev/stderr | grep -q '"code"'
+
+      - name: WebSocket relay
+        run: node test/ws.test.cjs
+
+      - name: Stop server
+        if: always()
+        run: pkill -f server.cjs || true
